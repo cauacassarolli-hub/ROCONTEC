@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="mobile-web-app-capable" content="yes">
@@ -1171,10 +1170,6 @@ textarea { resize: vertical; min-height: 80px; }
 </nav>
 
 <script>
-const SUPABASE_URL = "https://arhjpncxmwunlnulpbhu.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_uLdHEY1wlo6zbmMy3SUkXA_D8RWfgcE";
-
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 /* ════════════════════════════════════════
    SHARED
 ════════════════════════════════════════ */
@@ -1444,7 +1439,9 @@ function addEntry() {
   if(idx >= 0) { entries[idx].workers += n; showToast(`Atualizado: +${n}`); }
   else { entries.push({company,role,floor,workers:n}); showToast('Lançamento adicionado ✓'); }
   document.getElementById('qty').value = '';
-  saveEntries(); renderEntries();
+  saveEntries();
+  renderEntries();
+  updateDashboard();
 }
 
 function removeEntry(i) { entries.splice(i,1); saveEntries(); renderEntries(); }
@@ -1454,7 +1451,9 @@ function renderEntries() {
   if(entries.length === 0) {
     el.innerHTML = '<div class="empty-state"><div class="icon">📋</div>Nenhum lançamento ainda.<br>Adicione o efetivo acima.</div>';
     document.getElementById('totalNum').textContent = '0';
-    document.getElementById('totalBreak').innerHTML = ''; return;
+    document.getElementById('totalBreak').innerHTML = '';
+    updateDashboard();
+    return;
   }
   const grp = {};
   PAVIMENTOS.forEach(p => { if(entries.find(e=>e.floor===p)) grp[p]=[]; });
@@ -1482,6 +1481,7 @@ function renderEntries() {
   entries.forEach(e => { byRole[e.role] = (byRole[e.role]||0)+e.workers; });
   document.getElementById('totalBreak').innerHTML = Object.entries(byRole)
     .sort((a,b)=>b[1]-a[1]).slice(0,4).map(([r,n])=>`<div>${n} ${r}</div>`).join('');
+  updateDashboard();
 }
 
 function generateText() {
@@ -1547,7 +1547,7 @@ const RI_KEY       = 'ri_ocorrencias_v2';
 const RI_FOLDER_KEY = 'ri_pastas_v1';
 const RI_EMP_KEY    = 'ri_empreiteiras_v1';
 
-let riItems        = [];
+var riItems        = [];
 let riFolders      = [];   // pastas livres
 let riEmpreiteiras = [];   // empreiteiras do módulo RI
 
@@ -1569,22 +1569,30 @@ const RI_DISC_ALL = ['Estrutural','Hidráulica','Elétrica','Gesso','Drywall','I
 function riSaveFolders() { localStorage.setItem(RI_FOLDER_KEY, JSON.stringify(riFolders)); }
 
 function riAddFolder() {
-  const val = document.getElementById('ri-new-folder-inp').value.trim();
-  if (!val) return;
+  const inp = document.getElementById('ri-new-folder-inp');
+  const val = inp ? inp.value.trim() : '';
+  if (!val) { showToast('Informe o nome da pasta'); return; }
   if (riFolders.map(f=>f.toLowerCase()).includes(val.toLowerCase())) { showToast('Pasta já existe'); return; }
   riFolders.push(val);
   riSaveFolders();
-  document.getElementById('ri-new-folder-inp').value = '';
+  if (inp) inp.value = '';
   riRenderFolderTags();
   riPopulateFolderSelects();
+  riRender();
+  updateDashboard();
   showToast('Pasta criada ✓');
 }
 
 function riRemoveFolder(i) {
+  const folder = riFolders[i];
+  const inUse = riItems.some(x => x.folder === folder);
+  if (inUse) { showToast('Pasta em uso em uma RI'); return; }
   riFolders.splice(i, 1);
   riSaveFolders();
   riRenderFolderTags();
   riPopulateFolderSelects();
+  riRender();
+  updateDashboard();
 }
 
 function riRenderFolderTags() {
