@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="mobile-web-app-capable" content="yes">
@@ -10,6 +11,7 @@
 <meta name="theme-color" content="#cc1f1f">
 <title>Diário de Obra</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
 :root {
   --bg: #f5f5f5;
@@ -30,7 +32,7 @@ body {
   color: var(--text);
   font-family: 'Barlow', sans-serif;
   min-height: 100vh;
-  padding-bottom: 80px;
+  padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px));
 }
 
 /* ── HEADER ── */
@@ -77,6 +79,7 @@ body {
 .bottom-nav {
   position: fixed;
   bottom: 0; left: 0; right: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   background: var(--surface);
   border-top: 2px solid var(--red);
   display: flex;
@@ -274,16 +277,63 @@ textarea { resize: vertical; min-height: 80px; }
 
 
 /* ── DASHBOARD / CONFIGURAÇÕES ── */
+.dash-hero {
+  background: linear-gradient(135deg, #111 0%, #2a2a2a 62%, var(--red) 100%);
+  color: #fff; border-radius: 14px; padding: 18px; box-shadow: var(--shadow);
+  position: relative; overflow: hidden; margin-top: 16px;
+}
+.dash-hero::after { content:''; position:absolute; width:150px; height:150px; right:-50px; top:-50px; border:1px solid rgba(255,255,255,.18); border-radius:50%; }
+.dash-hero-top { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; position:relative; z-index:1; }
+.dash-hero-title { font-family:'Barlow Condensed',sans-serif; font-size:27px; font-weight:900; letter-spacing:1.5px; text-transform:uppercase; line-height:1; }
+.dash-hero-sub { font-size:12px; opacity:.78; margin-top:6px; line-height:1.35; }
+.dash-hero-date { text-align:right; font-family:'Barlow Condensed',sans-serif; font-weight:900; font-size:34px; line-height:.9; color:#fff; }
+.dash-hero-date span { display:block; font-size:10px; letter-spacing:2px; opacity:.72; margin-top:5px; text-transform:uppercase; }
+.dash-hero-metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:16px; position:relative; z-index:1; }
+.dash-hero-metric { background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.16); border-radius:10px; padding:10px 8px; }
+.dash-hero-metric b { display:block; font-family:'Barlow Condensed',sans-serif; font-size:28px; line-height:1; }
+.dash-hero-metric span { display:block; font-family:'Barlow Condensed',sans-serif; font-size:10px; letter-spacing:1px; text-transform:uppercase; opacity:.78; margin-top:4px; }
 .dash-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-.dash-card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 14px; box-shadow: var(--shadow); }
+.dash-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; box-shadow: var(--shadow); }
 .dash-card.full { grid-column: 1 / -1; }
+.dash-card.alert { border-left: 5px solid var(--red); }
 .dash-num { font-family: 'Barlow Condensed', sans-serif; font-size: 42px; font-weight: 900; color: var(--red); line-height: 1; }
 .dash-lbl { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text3); margin-top: 4px; }
 .dash-list { font-size: 13px; color: var(--text2); line-height: 1.6; }
+.dash-list-item { padding:9px 0; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
+.dash-list-item:last-child { border-bottom:none; }
+.dash-list-title { font-weight:700; color:var(--text); font-size:13px; }
+.dash-list-meta { font-size:11px; color:var(--text3); margin-top:2px; }
+.dash-pill { font-family:'Barlow Condensed',sans-serif; font-size:10px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; border-radius:999px; padding:3px 7px; white-space:nowrap; }
+.dash-pill.red { background:#fde8e8; color:#a81717; }
+.dash-pill.orange { background:#fef3e7; color:#8c4e00; }
+.dash-pill.blue { background:#e8f4fb; color:#145080; }
+.dash-pill.green { background:#e8f5ee; color:#1a5c2e; }
+.dash-actions { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+.dash-action { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px 8px; cursor:pointer; text-align:center; transition:.15s; color:var(--text); }
+.dash-action:hover { border-color:var(--red); transform:translateY(-1px); }
+.dash-action-icon { font-size:23px; margin-bottom:5px; }
+.dash-action-title { font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:800; letter-spacing:1px; text-transform:uppercase; }
+.dash-action-sub { font-size:10px; color:var(--text3); margin-top:2px; }
+.dash-mini-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.dash-progress-wrap { height:7px; background:var(--surface3); border-radius:999px; overflow:hidden; margin-top:8px; }
+.dash-progress-bar { height:100%; background:var(--red); border-radius:999px; width:0%; transition:width .25s; }
 .config-card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 14px; margin-bottom: 12px; }
 .config-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .date-tools { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: end; }
-@media(max-width:520px){ .dash-grid { grid-template-columns: 1fr 1fr; } .config-actions { grid-template-columns: 1fr; } .date-tools { grid-template-columns: 1fr; } .nav-btn { font-size: 9px; letter-spacing: .5px; } }
+@media(max-width:620px){
+  .dash-hero { border-radius:12px; padding:16px; }
+  .dash-hero-title { font-size:23px; }
+  .dash-hero-date { font-size:29px; }
+  .dash-hero-metrics { grid-template-columns:repeat(3,1fr); }
+  .dash-hero-metric { padding:9px 6px; }
+  .dash-hero-metric b { font-size:25px; }
+  .dash-grid { grid-template-columns: 1fr 1fr; }
+  .dash-actions { grid-template-columns:repeat(2,1fr); }
+  .dash-mini-grid { grid-template-columns:1fr; }
+  .config-actions { grid-template-columns: 1fr; }
+  .date-tools { grid-template-columns: 1fr; }
+  .nav-btn { font-size: 9px; letter-spacing: .5px; }
+}
 
 /* ── EMPTY ── */
 .empty-state {
@@ -311,7 +361,7 @@ textarea { resize: vertical; min-height: 80px; }
 /* ── MODAL ── */
 .overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.5);
-  z-index: 200; display: flex; align-items: flex-end; justify-content: center;
+  z-index: 1200; display: flex; align-items: flex-end; justify-content: center;
   opacity: 0; pointer-events: none; transition: opacity 0.2s;
 }
 .overlay.open { opacity: 1; pointer-events: all; }
@@ -342,6 +392,86 @@ textarea { resize: vertical; min-height: 80px; }
   max-height: 48vh; overflow-y: auto; margin-bottom: 14px;
 }
 .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+
+.pdf-action-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+  padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+}
+.saved-report-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 12px;
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+.saved-report-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 3px;
+}
+.saved-report-meta {
+  font-size: 11px;
+  color: var(--text3);
+}
+.saved-report-actions { display: flex; gap: 6px; }
+.icon-btn-mini {
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 7px 9px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.icon-btn-mini:hover { border-color: var(--red); color: var(--red); }
+
+.file-folder-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--red);
+  border-radius: 4px;
+  padding: 12px;
+  margin-bottom: 8px;
+}
+.file-folder-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+}
+.file-folder-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+.file-folder-meta {
+  font-size: 11px;
+  color: var(--text3);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+.file-folder-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.saved-report-card.full-width {
+  grid-template-columns: 1fr;
+}
+.saved-report-actions.wrap {
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
 
 /* ── INSTALL BANNER ── */
 .install-banner {
@@ -739,6 +869,43 @@ textarea { resize: vertical; min-height: 80px; }
   margin-top: 20px; padding-top: 10px; border-top: 1px solid #ddd;
   font-size: 10px; color: #aaa; text-align: center;
 }
+
+
+/* ══════════════════════════════════════
+   MELHORIAS OPERACIONAIS — busca, unidades, reunião, anexos, sync
+══════════════════════════════════════ */
+.quick-grid { display:grid; grid-template-columns: repeat(2,1fr); gap:8px; }
+.quick-grid .btn { width:100%; }
+.search-result-card, .unit-card, .meeting-card, .history-card, .sync-card {
+  background: var(--surface); border:1px solid var(--border); border-radius:4px; padding:12px; margin-bottom:8px;
+}
+.search-result-top, .unit-top, .meeting-top { display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
+.search-result-title, .unit-title, .meeting-title { font-weight:700; font-size:14px; color:var(--text); line-height:1.25; }
+.search-result-meta, .unit-meta, .meeting-meta { font-size:12px; color:var(--text3); margin-top:4px; line-height:1.45; }
+.small-badges { display:flex; flex-wrap:wrap; gap:4px; margin-top:8px; }
+.mini-badge { font-family:'Barlow Condensed',sans-serif; font-size:10px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; border-radius:3px; padding:2px 6px; background:var(--surface3); color:var(--text2); }
+.mini-badge.red { background:#fde8e8; color:#a81717; }
+.mini-badge.orange { background:#fef3e7; color:#8c4e00; }
+.mini-badge.green { background:#e8f5ee; color:#1a5c2e; }
+.mini-badge.blue { background:#e8f4fb; color:#145080; }
+.mini-badge.dark { background:#222; color:#fff; }
+.form-row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+@media (max-width:560px){ .form-row3 { grid-template-columns:1fr; } .quick-grid { grid-template-columns:1fr; } }
+.filter-block { margin-bottom:10px; }
+.comment-box { background:#fafafa; border:1px solid var(--border); border-radius:4px; padding:8px 10px; margin-top:8px; font-size:12px; color:var(--text2); }
+.comment-row { border-top:1px solid var(--border); padding-top:6px; margin-top:6px; }
+.comment-row:first-child { border-top:none; margin-top:0; padding-top:0; }
+.attach-list { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.attach-chip { background:var(--surface3); border:1px solid var(--border); border-radius:3px; padding:5px 8px; font-size:11px; color:var(--text2); display:flex; align-items:center; gap:6px; }
+.attach-chip button { border:none; background:transparent; cursor:pointer; color:var(--red); }
+.ri-card.pri-alta, .ri-card.pri-critica { box-shadow: inset 0 0 0 1px rgba(204,31,31,.25); }
+.ri-card.vencida { border-top:3px solid var(--red); }
+.unit-grid { display:grid; grid-template-columns:1fr; gap:8px; }
+.status-dot { width:9px; height:9px; border-radius:50%; display:inline-block; margin-right:4px; background:var(--border); }
+.status-dot.pend { background:#e67e22; }.status-dot.corr{background:#2980b9}.status-dot.ok{background:#27ae60}.status-dot.crit{background:#cc1f1f}
+.whatsapp-note { font-size:12px; color:var(--text3); line-height:1.45; margin-top:6px; }
+.sync-status { font-size:12px; color:var(--text2); margin-top:8px; line-height:1.45; }
+
 </style>
 <body>
 
@@ -765,23 +932,76 @@ textarea { resize: vertical; min-height: 80px; }
     <button id="installBtn">Instalar</button>
   </div>
 
-  <div class="section">
-    <div class="sec-label">Resumo da obra</div>
-    <div class="dash-grid">
-      <div class="dash-card"><div class="dash-num" id="db-total-workers">0</div><div class="dash-lbl">Trabalhadores hoje</div></div>
-      <div class="dash-card"><div class="dash-num" id="db-ri-pend">0</div><div class="dash-lbl">RIs pendentes</div></div>
-      <div class="dash-card"><div class="dash-num" id="db-ri-total">0</div><div class="dash-lbl">Total de RIs</div></div>
-      <div class="dash-card"><div class="dash-num" id="db-ri-corr">0</div><div class="dash-lbl">RIs em correção</div></div>
-      <div class="dash-card full">
-        <div class="sec-label" style="margin-bottom:8px">Últimas ocorrências</div>
-        <div class="dash-list" id="db-last-ri">Nenhuma ocorrência registrada.</div>
+  <div class="dash-hero">
+    <div class="dash-hero-top">
+      <div>
+        <div class="dash-hero-title" id="db-hero-title">Resumo da obra</div>
+        <div class="dash-hero-sub" id="db-hero-sub">Visão rápida para começar o dia em campo</div>
       </div>
+      <div class="dash-hero-date"><span id="db-hero-weekday">Hoje</span><span id="db-hero-date">--/--</span></div>
+    </div>
+    <div class="dash-hero-metrics">
+      <div class="dash-hero-metric"><b id="db-total-workers">0</b><span>Efetivo hoje</span></div>
+      <div class="dash-hero-metric"><b id="db-open-ri">0</b><span>RIs abertas</span></div>
+      <div class="dash-hero-metric"><b id="db-critical-ri">0</b><span>Críticas</span></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sec-label">Ações rápidas</div>
+    <div class="dash-actions">
+      <button class="dash-action" onclick="setPage('diario')"><div class="dash-action-icon">👷</div><div class="dash-action-title">Efetivo</div><div class="dash-action-sub">lançar hoje</div></button>
+      <button class="dash-action" onclick="setPage('ri');setTimeout(()=>riToggleForm(),80)"><div class="dash-action-icon">⚠️</div><div class="dash-action-title">Nova RI</div><div class="dash-action-sub">registrar foto</div></button>
+      <button class="dash-action" onclick="setPage('busca')"><div class="dash-action-icon">🔎</div><div class="dash-action-title">Buscar</div><div class="dash-action-sub">apto/pasta</div></button>
+      <button class="dash-action" onclick="setPage('arquivos')"><div class="dash-action-icon">📁</div><div class="dash-action-title">Arquivos</div><div class="dash-action-sub">relatórios</div></button>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sec-label">Painel de controle</div>
+    <div class="dash-grid">
+      <div class="dash-card"><div class="dash-num" id="db-ri-pend">0</div><div class="dash-lbl">Pendentes</div></div>
+      <div class="dash-card"><div class="dash-num" id="db-ri-corr">0</div><div class="dash-lbl">Em correção</div></div>
+      <div class="dash-card alert"><div class="dash-num" id="db-ri-late">0</div><div class="dash-lbl">Atrasadas</div></div>
+      <div class="dash-card"><div class="dash-num" id="db-ri-noresp">0</div><div class="dash-lbl">Sem responsável</div></div>
       <div class="dash-card full">
-        <div class="sec-label" style="margin-bottom:8px">Ações rápidas</div>
-        <div class="config-actions">
-          <button class="btn btn-red" onclick="setPage('diario')">Lançar efetivo</button>
-          <button class="btn btn-gray" onclick="setPage('config')">Configurações / Backup</button>
-        </div>
+        <div class="sec-label" style="margin-bottom:8px">Andamento das RIs</div>
+        <div class="dash-list"><strong id="db-ri-progress-text">0 de 0 corrigidas</strong></div>
+        <div class="dash-progress-wrap"><div class="dash-progress-bar" id="db-ri-progress-bar"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sec-label">O que precisa de atenção</div>
+    <div class="dash-card full">
+      <div class="dash-list" id="db-alerts-list">Nenhuma pendência crítica no momento.</div>
+    </div>
+  </div>
+
+  <div class="section dash-mini-grid">
+    <div class="dash-card">
+      <div class="sec-label" style="margin-bottom:8px">Últimas ocorrências</div>
+      <div class="dash-list" id="db-last-ri">Nenhuma ocorrência registrada.</div>
+    </div>
+    <div class="dash-card">
+      <div class="sec-label" style="margin-bottom:8px">Efetivo por empreiteira</div>
+      <div class="dash-list" id="db-worker-by-company">Nenhum efetivo lançado hoje.</div>
+    </div>
+  </div>
+
+  <div class="section dash-mini-grid">
+    <div class="dash-card">
+      <div class="sec-label" style="margin-bottom:8px">Arquivos</div>
+      <div class="dash-list" id="db-files-summary">Nenhum relatório salvo.</div>
+    </div>
+    <div class="dash-card">
+      <div class="sec-label" style="margin-bottom:8px">Atalhos de gestão</div>
+      <div class="quick-grid">
+        <button class="btn btn-gray" onclick="setPage('unidades')">Apartamentos</button>
+        <button class="btn btn-gray" onclick="setPage('reuniao')">Modo reunião</button>
+        <button class="btn btn-gray" onclick="setPage('ri')">Ver RIs</button>
+        <button class="btn btn-gray" onclick="setPage('config')">Ajustes</button>
       </div>
     </div>
   </div>
@@ -856,6 +1076,10 @@ textarea { resize: vertical; min-height: 80px; }
           <input type="number" id="qty" min="1" placeholder="0" onkeydown="if(event.key==='Enter')addEntry()">
         </div>
       </div>
+      <div>
+        <label class="field-label">Serviço executado / frente de trabalho</label>
+        <input type="text" id="entryService" placeholder="Ex: assentamento de cerâmica, arremate de gesso, enfiação...">
+      </div>
       <button class="btn btn-red btn-full" onclick="addEntry()">▸ Adicionar ao efetivo</button>
     </div>
   </div>
@@ -886,6 +1110,12 @@ textarea { resize: vertical; min-height: 80px; }
       <button class="exp-btn" onclick="sendWhatsApp()"><span>💬</span>WhatsApp</button>
       <button class="exp-btn" onclick="openModal()"><span>👁️</span>Visualizar</button>
     </div>
+  </div>
+
+  <div class="section">
+    <div class="sec-label">Histórico por empreiteira</div>
+    <select id="hist-company" onchange="renderEfetivoHistorico()"><option value="">— selecione uma empreiteira —</option></select>
+    <div id="efetivo-historico" style="margin-top:10px"></div>
   </div>
 
 </div>
@@ -941,6 +1171,10 @@ textarea { resize: vertical; min-height: 80px; }
     <div class="ri-filter-row" id="ri-disc-filters"></div>
     <div class="field-label" style="margin-top:8px;margin-bottom:5px">Status</div>
     <div class="ri-filter-row" id="ri-status-filters"></div>
+    <div class="field-label" style="margin-top:8px;margin-bottom:5px">Responsável</div>
+    <div class="ri-filter-row" id="ri-resp-filters"></div>
+    <div class="field-label" style="margin-top:8px;margin-bottom:5px">Prioridade / prazo</div>
+    <div class="ri-filter-row" id="ri-priority-filters"></div>
   </div>
 
   <!-- Nova Ocorrência -->
@@ -997,6 +1231,22 @@ textarea { resize: vertical; min-height: 80px; }
         </select>
       </div>
 
+      <div class="form-row2" style="margin-bottom:10px">
+        <div>
+          <label class="field-label">Prioridade</label>
+          <select id="ri-inp-priority">
+            <option value="normal">Normal</option>
+            <option value="urgente">Urgente</option>
+            <option value="impede">Impede serviço</option>
+            <option value="critica">Crítica</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">Prazo de correção</label>
+          <input id="ri-inp-deadline" type="date"/>
+        </div>
+      </div>
+
       <!-- Pavimento + Apto -->
       <div class="form-row2" style="margin-bottom:10px">
         <div>
@@ -1019,6 +1269,17 @@ textarea { resize: vertical; min-height: 80px; }
       <div style="margin-bottom:10px">
         <label class="field-label">Descrição detalhada</label>
         <textarea id="ri-inp-desc" placeholder="Descreva a incoerência encontrada, contexto, dimensões, risco..."></textarea>
+      </div>
+
+      <div style="margin-bottom:10px">
+        <label class="field-label">Comentário inicial / cobrança</label>
+        <input id="ri-inp-comment" type="text" placeholder="Ex: Informado ao responsável, precisa corrigir até sexta..."/>
+      </div>
+
+      <div style="margin-bottom:10px">
+        <label class="field-label">Anexos</label>
+        <input id="ri-attach-inp" type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" onchange="riAttachmentsSelected(this)"/>
+        <div class="attach-list" id="ri-attach-list"></div>
       </div>
 
       <div class="ri-datetime-info" id="ri-datetime-info"></div>
@@ -1057,11 +1318,101 @@ textarea { resize: vertical; min-height: 80px; }
         <option value="corrigido">Corrigido</option>
       </select>
     </div>
+    <div style="margin-top:14px">
+      <div class="sec-label">Relatórios salvos no app</div>
+      <div id="ri-saved-reports"></div>
+    </div>
   </div>
 
 </div>
 </div><!-- /page-ri -->
 
+
+<!-- PAGE: ARQUIVOS -->
+<div class="page" id="page-arquivos">
+<div class="container">
+  <div class="section">
+    <div class="sec-label">Resumo de arquivos</div>
+    <div class="dash-grid">
+      <div class="dash-card"><div class="dash-num" id="arq-cnt-folders">0</div><div class="dash-lbl">Pastas criadas</div></div>
+      <div class="dash-card"><div class="dash-num" id="arq-cnt-reports">0</div><div class="dash-lbl">Relatórios salvos</div></div>
+      <div class="dash-card"><div class="dash-num" id="arq-cnt-ris">0</div><div class="dash-lbl">Ocorrências</div></div>
+      <div class="dash-card"><div class="dash-num" id="arq-cnt-pend">0</div><div class="dash-lbl">Pendentes</div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sec-label">Pastas</div>
+    <div id="arq-folder-list"></div>
+  </div>
+
+  <div class="section">
+    <div class="sec-label">Relatórios gerados</div>
+    <input type="text" id="arq-search" placeholder="🔍 Buscar relatório..." oninput="renderArquivos()" style="margin-bottom:10px"/>
+    <div id="arq-report-list"></div>
+  </div>
+</div>
+</div><!-- /page-arquivos -->
+
+
+
+
+<!-- PAGE: BUSCA GERAL -->
+<div class="page" id="page-busca">
+<div class="container">
+  <div class="section">
+    <div class="sec-label">Busca geral</div>
+    <input id="global-search" type="text" placeholder="🔍 Busque por apto, pavimento, responsável, pasta, relatório, serviço..." oninput="renderGlobalSearch()">
+    <div class="whatsapp-note">A busca encontra RIs, relatórios salvos e registros de efetivo.</div>
+  </div>
+  <div class="section">
+    <div class="sec-label">Resultados</div>
+    <div id="global-search-results"></div>
+  </div>
+</div>
+</div><!-- /page-busca -->
+
+<!-- PAGE: APARTAMENTOS / UNIDADES -->
+<div class="page" id="page-unidades">
+<div class="container">
+  <div class="section">
+    <div class="sec-label">Controle por apartamento</div>
+    <div class="form-row2">
+      <div><label class="field-label">Pavimento</label><select id="unit-floor-filter" onchange="renderUnidades()"></select></div>
+      <div><label class="field-label">Status</label><select id="unit-status-filter" onchange="renderUnidades()"><option value="all">Todos</option><option value="abertas">Com pendências abertas</option><option value="corrigido">Somente corrigidas</option><option value="sem-ri">Sem RI registrada</option></select></div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="sec-label">Unidades</div>
+    <div id="unit-list"></div>
+  </div>
+</div>
+</div><!-- /page-unidades -->
+
+<!-- PAGE: MODO REUNIÃO -->
+<div class="page" id="page-reuniao">
+<div class="container">
+  <div class="section">
+    <div class="sec-label">Modo reunião</div>
+    <div class="dash-grid">
+      <div class="dash-card"><div class="dash-num" id="mtg-pend">0</div><div class="dash-lbl">Pendentes</div></div>
+      <div class="dash-card"><div class="dash-num" id="mtg-atras">0</div><div class="dash-lbl">Atrasadas</div></div>
+      <div class="dash-card"><div class="dash-num" id="mtg-crit">0</div><div class="dash-lbl">Críticas / impedem</div></div>
+      <div class="dash-card"><div class="dash-num" id="mtg-semresp">0</div><div class="dash-lbl">Sem responsável</div></div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="sec-label">Pendências por responsável</div>
+    <div id="meeting-by-resp"></div>
+  </div>
+  <div class="section">
+    <div class="sec-label">Cobrança rápida</div>
+    <select id="meeting-resp-select" onchange="renderMeetingChargePreview()"></select>
+    <div id="meeting-charge-preview" class="preview-box" style="margin-top:10px;max-height:240px"></div>
+    <button class="btn btn-red btn-full" onclick="sendMeetingChargeWhatsApp()">Enviar cobrança por WhatsApp</button>
+  </div>
+</div>
+</div><!-- /page-reuniao -->
 
 <!-- PAGE: CONFIGURAÇÕES -->
 <div class="page" id="page-config">
@@ -1104,6 +1455,28 @@ textarea { resize: vertical; min-height: 80px; }
       <input id="backupFile" type="file" accept="application/json,.json" style="display:none" onchange="importBackup(this)">
     </div>
   </div>
+
+  <div class="section">
+    <div class="sec-label">Sincronização Supabase</div>
+    <div class="config-card sync-card">
+      <p style="font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:12px">Opcional: use o Supabase como backup em nuvem. Primeiro crie a tabela <strong>app_backups</strong> no Supabase e depois preencha URL, chave pública e login.</p>
+      <div class="form-grid">
+        <div><label class="field-label">Supabase URL</label><input id="sync-url" placeholder="https://xxxx.supabase.co"></div>
+        <div><label class="field-label">Publishable key</label><input id="sync-key" placeholder="sb_publishable_..."></div>
+        <div class="form-row2">
+          <div><label class="field-label">E-mail</label><input id="sync-email" type="email" placeholder="seu@email.com"></div>
+          <div><label class="field-label">Senha</label><input id="sync-pass" type="password" placeholder="senha"></div>
+        </div>
+        <div class="config-actions">
+          <button class="btn btn-gray" onclick="saveSyncSettings()">Salvar dados</button>
+          <button class="btn btn-red" onclick="syncLogin()">Entrar</button>
+          <button class="btn btn-red" onclick="syncUpload()">Enviar backup</button>
+          <button class="btn btn-gray" onclick="syncDownload()">Restaurar da nuvem</button>
+        </div>
+        <div class="sync-status" id="sync-status">Não conectado.</div>
+      </div>
+    </div>
+  </div>
 </div>
 </div><!-- /page-config -->
 
@@ -1127,9 +1500,11 @@ textarea { resize: vertical; min-height: 80px; }
     </div>
     <div style="padding:14px;overflow-y:auto;max-height:calc(88vh - 100px)">
       <div id="ri-pdf-preview"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px">
+      <div class="pdf-action-grid">
         <button class="btn btn-gray" onclick="riClosePDF()">Fechar</button>
-        <button class="btn btn-red" onclick="riPrintPDF()">Imprimir / Salvar PDF</button>
+        <button class="btn btn-red" onclick="riSaveCurrentReport()">Salvar no app</button>
+        <button class="btn btn-gray" onclick="riDownloadCurrentPDF()">Baixar PDF</button>
+        <button class="btn btn-red" onclick="riShareCurrentPDF()">Compartilhar</button>
       </div>
     </div>
   </div>
@@ -1163,6 +1538,9 @@ textarea { resize: vertical; min-height: 80px; }
   </button>
   <button class="nav-btn" id="nav-ri" onclick="setPage('ri')">
     <span class="nav-icon">⚠️</span>RIs
+  </button>
+  <button class="nav-btn" id="nav-arquivos" onclick="setPage('arquivos')">
+    <span class="nav-icon">📁</span>Arquivos
   </button>
   <button class="nav-btn" id="nav-config" onclick="setPage('config')">
     <span class="nav-icon">⚙️</span>Ajustes
@@ -1301,6 +1679,7 @@ function setPage(page) {
     dashboard: ['DB','Dashboard','Resumo da Obra'],
     diario: [appSettings.logo || 'DO', appSettings.obra || 'Diário de Obra','Controle de Efetivo'],
     ri:     ['RI','Rel. de Incoerências', appSettings.empresa || 'ROCONTEC'],
+    arquivos: ['AR','Arquivos','Pastas e Relatórios'],
     config: ['⚙','Configurações','Obra, listas e backup'],
   };
   const h = headers[page] || headers.diario;
@@ -1308,6 +1687,7 @@ function setPage(page) {
   document.getElementById('headerTitle').textContent = h[1];
   document.getElementById('headerSub').textContent = h[2];
   if (page === 'ri') riRender();
+  if (page === 'arquivos') renderArquivos();
   if (page === 'config') fillConfigFields();
   updateDashboard();
 }
@@ -1546,6 +1926,7 @@ document.getElementById('installBtn').addEventListener('click', async () => {
 const RI_KEY       = 'ri_ocorrencias_v2';
 const RI_FOLDER_KEY = 'ri_pastas_v1';
 const RI_EMP_KEY    = 'ri_empreiteiras_v1';
+const RI_REPORTS_KEY = 'ri_relatorios_pdf_v1';
 
 var riItems        = [];
 let riFolders      = [];   // pastas livres
@@ -1556,10 +1937,13 @@ let riDiscFilter   = 'all';
 let riStatusFilter = 'all';
 let riCurrentPhoto = null;
 let riEditId       = null;
+let riSavedReports = [];
+let riCurrentReport = null;
 
 try { riItems        = JSON.parse(localStorage.getItem(RI_KEY)        || '[]'); } catch(e){}
 try { riFolders      = JSON.parse(localStorage.getItem(RI_FOLDER_KEY) || '[]'); } catch(e){}
 try { riEmpreiteiras = JSON.parse(localStorage.getItem(RI_EMP_KEY)    || '[]'); } catch(e){}
+try { riSavedReports = JSON.parse(localStorage.getItem(RI_REPORTS_KEY) || '[]'); } catch(e){ riSavedReports = []; }
 
 const RI_DISC_ALL = ['Estrutural','Hidráulica','Elétrica','Gesso','Drywall','Impermeabilização','Acabamentos','Outras'];
 
@@ -1580,6 +1964,7 @@ function riAddFolder() {
   riPopulateFolderSelects();
   riRender();
   updateDashboard();
+  renderArquivos();
   showToast('Pasta criada ✓');
 }
 
@@ -1593,6 +1978,7 @@ function riRemoveFolder(i) {
   riPopulateFolderSelects();
   riRender();
   updateDashboard();
+  renderArquivos();
 }
 
 function riRenderFolderTags() {
@@ -1721,7 +2107,7 @@ function riSaveItem() {
     item.history.push({ date: now.toISOString(), text: 'Ocorrência registrada' });
     riItems.push(item);
   }
-  riSave(); riResetForm(); riRender();
+  riSave(); riResetForm(); riRender(); renderArquivos();
   showToast('Ocorrência salva ✓');
 }
 
@@ -1991,6 +2377,16 @@ function riGeneratePDF() {
   });
 
   html += `<div class="ri-pdf-footer">Relatório gerado pelo sistema Diário de Obra · ${obra} · ${now}</div></div>`;
+  riCurrentReport = {
+    id: String(Date.now()),
+    title: `RI — ${obra} — ${now}`,
+    obra,
+    folder: folderFilt || '',
+    status: statusFilt || '',
+    html,
+    count: items.length,
+    createdAt: new Date().toISOString()
+  };
   document.getElementById('ri-pdf-preview').innerHTML = html;
   document.getElementById('ri-pdf-overlay').classList.add('open');
 }
@@ -2066,8 +2462,712 @@ async function riCopyText() {
 }
 
 
+function escapeHtml(str) {
+  return String(str ?? '')
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;')
+    .replaceAll('"','&quot;')
+    .replaceAll("'",'&#039;');
+}
+
+function riSaveReports() {
+  try { localStorage.setItem(RI_REPORTS_KEY, JSON.stringify(riSavedReports)); } catch(e) { showToast('Erro ao salvar relatório'); }
+}
+
+function riSaveCurrentReport() {
+  if (!riCurrentReport || !riCurrentReport.html) { showToast('Gere um relatório primeiro'); return; }
+  const exists = riSavedReports.some(r => r.id === riCurrentReport.id);
+  if (!exists) riSavedReports.unshift(riCurrentReport);
+  riSaveReports();
+  riRenderSavedReports();
+  renderArquivos();
+  showToast('Relatório salvo no app ✓');
+}
+
+function riOpenSavedReport(id) {
+  const report = riSavedReports.find(r => r.id === id);
+  if (!report) { showToast('Relatório não encontrado'); return; }
+  riCurrentReport = report;
+  document.getElementById('ri-pdf-preview').innerHTML = report.html;
+  document.getElementById('ri-pdf-overlay').classList.add('open');
+}
+
+function riDeleteSavedReport(id) {
+  riSavedReports = riSavedReports.filter(r => r.id !== id);
+  riSaveReports();
+  riRenderSavedReports();
+  renderArquivos();
+  showToast('Relatório removido');
+}
+
+function reportMeta(report) {
+  const date = report.createdAt ? fmtDT(report.createdAt) : '';
+  const folder = report.folder ? ` · Pasta: ${report.folder}` : '';
+  const status = report.status ? ` · Status: ${riStatusLabel(report.status)}` : '';
+  return `${date} · ${report.count || 0} ocorrência(s)${folder}${status}`;
+}
+
+function riRenderSavedReports() {
+  const el = document.getElementById('ri-saved-reports');
+  if (!el) return;
+  if (!riSavedReports.length) {
+    el.innerHTML = '<div class="empty-state"><div class="icon">📁</div>Nenhum relatório salvo ainda.<br>Gere um relatório e toque em “Salvar no app”.</div>';
+    return;
+  }
+  el.innerHTML = riSavedReports.slice(0, 6).map(r => `
+    <div class="saved-report-card">
+      <div>
+        <div class="saved-report-title">${escapeHtml(r.title || 'Relatório RI')}</div>
+        <div class="saved-report-meta">${escapeHtml(reportMeta(r))}</div>
+      </div>
+      <div class="saved-report-actions">
+        <button class="icon-btn-mini" onclick="riOpenSavedReport('${r.id}')" title="Abrir">👁️</button>
+        <button class="icon-btn-mini" onclick="riDeleteSavedReport('${r.id}')" title="Excluir">✕</button>
+      </div>
+    </div>`).join('') + (riSavedReports.length > 6 ? `<button class="btn btn-gray btn-full" style="margin-top:8px" onclick="setPage('arquivos')">Ver todos em Arquivos</button>` : '');
+}
+
+function riDownloadCurrentPDF() {
+  if (!riCurrentReport || !riCurrentReport.html) { showToast('Abra ou gere um relatório primeiro'); return; }
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escapeHtml(riCurrentReport.title || 'Relatório RI')}</title>
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{font-family:sans-serif;color:#111;background:#fff;padding:20px}
+      .ri-pdf-page{max-width:800px;margin:0 auto}.ri-pdf-header{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #cc1f1f;padding-bottom:12px;margin-bottom:16px}.ri-pdf-logo{width:48px;height:48px;background:#cc1f1f;border-radius:3px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:18px}.ri-pdf-obra{text-align:right}.ri-pdf-obra h2{font-size:16px;font-weight:700;color:#cc1f1f;margin:0}.ri-pdf-obra p{font-size:10px;color:#888;margin:0}.ri-pdf-item{border:1px solid #ddd;border-radius:4px;margin-bottom:14px;overflow:hidden;page-break-inside:avoid}.ri-pdf-item-header{background:#f5f5f5;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px}.ri-pdf-item-title{font-size:13px;font-weight:700;color:#111}.ri-pdf-status{font-size:10px;font-weight:700;padding:2px 8px;border-radius:3px;text-transform:uppercase}.ri-pdf-item-body{padding:10px 12px}.ri-pdf-item-img{width:100%;max-height:220px;object-fit:cover;border-radius:3px;margin-bottom:8px;display:block}.ri-pdf-meta{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;font-size:10px;color:#555}.ri-pdf-desc{font-size:12px;color:#333;line-height:1.6;margin-bottom:6px}.ri-pdf-hist{margin-top:8px;padding-top:8px;border-top:1px solid #eee;font-size:10px;color:#888}.ri-pdf-footer{margin-top:20px;padding-top:10px;border-top:1px solid #ddd;font-size:10px;color:#aaa;text-align:center}@media print{body{padding:0}.ri-pdf-page{max-width:100%}}
+    </style></head><body>${riCurrentReport.html}</body></html>`);
+  w.document.close();
+  setTimeout(()=>w.print(), 450);
+}
+
+async function riShareCurrentPDF() {
+  if (!riCurrentReport || !riCurrentReport.html) { showToast('Abra ou gere um relatório primeiro'); return; }
+  const cleanName = (riCurrentReport.title || 'relatorio-ri').toLowerCase().replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'');
+  const htmlDoc = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escapeHtml(riCurrentReport.title)}</title></head><body>${riCurrentReport.html}</body></html>`;
+  try {
+    const file = new File([htmlDoc], `${cleanName}.html`, { type: 'text/html' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ title: riCurrentReport.title, text: riCurrentReport.title, files: [file] });
+      return;
+    }
+    if (navigator.share) {
+      await navigator.share({ title: riCurrentReport.title, text: `${riCurrentReport.title}\n${reportMeta(riCurrentReport)}` });
+      return;
+    }
+  } catch(e) {}
+  await navigator.clipboard.writeText(`${riCurrentReport.title}\n${reportMeta(riCurrentReport)}`);
+  showToast('Resumo copiado para compartilhar');
+}
+
+function renderArquivos() {
+  const setTxt=(id,val)=>{ const el=document.getElementById(id); if(el) el.textContent=val; };
+  setTxt('arq-cnt-folders', riFolders.length);
+  setTxt('arq-cnt-reports', riSavedReports.length);
+  setTxt('arq-cnt-ris', riItems.length);
+  setTxt('arq-cnt-pend', riItems.filter(x=>x.status==='pendente').length);
+
+  const folderEl = document.getElementById('arq-folder-list');
+  if (folderEl) {
+    const folders = [...riFolders];
+    const semPastaCount = riItems.filter(x=>!x.folder).length;
+    const cards = folders.map(folder => {
+      const its = riItems.filter(x=>x.folder===folder);
+      const pend = its.filter(x=>x.status==='pendente').length;
+      const corr = its.filter(x=>x.status==='correcao').length;
+      const ok = its.filter(x=>x.status==='corrigido').length;
+      return `<div class="file-folder-card">
+        <div class="file-folder-top">
+          <div>
+            <div class="file-folder-title">📁 ${escapeHtml(folder)}</div>
+            <div class="file-folder-meta">${its.length} ocorrência(s) · ${pend} pendente(s) · ${corr} em correção · ${ok} corrigida(s)</div>
+          </div>
+          <button class="icon-btn-mini" onclick="openArquivosFolder('${escapeHtml(folder)}')">Abrir</button>
+        </div>
+      </div>`;
+    }).join('');
+    const semPastaCard = semPastaCount ? `<div class="file-folder-card">
+      <div class="file-folder-top"><div><div class="file-folder-title">📂 Sem pasta</div><div class="file-folder-meta">${semPastaCount} ocorrência(s)</div></div><button class="icon-btn-mini" onclick="openArquivosFolder('__sem_pasta__')">Abrir</button></div>
+    </div>` : '';
+    folderEl.innerHTML = cards || semPastaCard ? cards + semPastaCard : '<div class="empty-state"><div class="icon">📁</div>Nenhuma pasta criada ainda.</div>';
+  }
+
+  const reportEl = document.getElementById('arq-report-list');
+  if (reportEl) {
+    const q = (document.getElementById('arq-search')?.value || '').toLowerCase().trim();
+    const reports = riSavedReports.filter(r => !q || (r.title||'').toLowerCase().includes(q) || (r.folder||'').toLowerCase().includes(q) || reportMeta(r).toLowerCase().includes(q));
+    reportEl.innerHTML = reports.length ? reports.map(r => `
+      <div class="saved-report-card full-width">
+        <div>
+          <div class="saved-report-title">📄 ${escapeHtml(r.title || 'Relatório RI')}</div>
+          <div class="saved-report-meta">${escapeHtml(reportMeta(r))}</div>
+        </div>
+        <div class="saved-report-actions wrap">
+          <button class="btn btn-gray btn-sm" onclick="riOpenSavedReport('${r.id}')">Abrir</button>
+          <button class="btn btn-gray btn-sm" onclick="riOpenSavedReport('${r.id}'); setTimeout(()=>riDownloadCurrentPDF(), 300)">Salvar PDF</button>
+          <button class="btn btn-red btn-sm" onclick="riOpenSavedReport('${r.id}'); setTimeout(()=>riShareCurrentPDF(), 300)">Compartilhar</button>
+          <button class="btn-remove" onclick="riDeleteSavedReport('${r.id}')">Excluir</button>
+        </div>
+      </div>`).join('') : '<div class="empty-state"><div class="icon">📄</div>Nenhum relatório salvo ainda.<br>Gere um relatório nas RIs e toque em “Salvar no app”.</div>';
+  }
+}
+
+function openArquivosFolder(folder) {
+  riFolderFilter = folder;
+  setPage('ri');
+  setTimeout(()=>riRender(), 50);
+}
+
+
 const riObraInput = document.getElementById('ri-obra-nome'); if(riObraInput) riObraInput.addEventListener('input',()=>riObraInput.dataset.userEdited='1');
 fillConfigFields();
+updateDashboard();
+
+riRenderSavedReports();
+renderArquivos();
+
+
+/* ════════════════════════════════════════
+   MELHORIAS OPERACIONAIS — implementações
+════════════════════════════════════════ */
+let riRespFilter = 'all';
+let riPriorityFilter = 'all';
+let riCurrentAttachments = [];
+let syncClient = null;
+const SYNC_CFG_KEY = 'dob_supabase_sync_cfg_v1';
+
+function qs(id){ return document.getElementById(id); }
+function safeLower(v){ return String(v||'').toLowerCase(); }
+function deadlineState(item){
+  if(!item.deadline || item.status==='corrigido') return 'sem-prazo';
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(item.deadline+'T12:00:00'); d.setHours(0,0,0,0);
+  const diff = Math.round((d-today)/86400000);
+  if(diff < 0) return 'atrasada';
+  if(diff === 0) return 'vence-hoje';
+  if(diff <= 3) return 'proxima';
+  return 'ok';
+}
+function deadlineBadge(item){
+  const st = deadlineState(item);
+  if(st==='sem-prazo') return '';
+  const label = st==='atrasada' ? 'Atrasada' : st==='vence-hoje' ? 'Vence hoje' : st==='proxima' ? 'Prazo próximo' : 'No prazo';
+  const cls = st==='atrasada'||st==='vence-hoje' ? 'red' : st==='proxima' ? 'orange' : 'green';
+  return `<span class="mini-badge ${cls}">⏱ ${label}${item.deadline?' · '+fmtDateBR(item.deadline):''}</span>`;
+}
+function fmtDateBR(d){ if(!d) return ''; const p=String(d).split('-'); return p.length===3 ? `${p[2]}/${p[1]}/${p[0]}` : d; }
+function priorityLabel(p){ return ({normal:'Normal',urgente:'Urgente',impede:'Impede serviço',critica:'Crítica'}[p] || 'Normal'); }
+function priorityBadge(p){
+  const cls = p==='critica'||p==='impede' ? 'red' : p==='urgente' ? 'orange' : 'dark';
+  return `<span class="mini-badge ${cls}">Prioridade: ${priorityLabel(p)}</span>`;
+}
+function isOpenRI(x){ return x.status !== 'corrigido'; }
+function currentOpenRis(){ return riItems.filter(isOpenRI); }
+function unique(arr){ return [...new Set(arr.filter(Boolean))]; }
+
+// setPage tolerante a páginas sem botão no menu inferior
+const _oldSetPage = setPage;
+setPage = function(page){
+  currentPage = page;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const pageEl = document.getElementById('page-' + page);
+  if(pageEl) pageEl.classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const nav = document.getElementById('nav-' + page);
+  if(nav) nav.classList.add('active');
+  const headers = {
+    dashboard: ['DB','Dashboard','Resumo da Obra'],
+    diario: [appSettings.logo || 'DO', appSettings.obra || 'Diário de Obra','Controle de Efetivo'],
+    ri: ['RI','Rel. de Incoerências', appSettings.empresa || 'ROCONTEC'],
+    arquivos: ['AR','Arquivos','Pastas e Relatórios'],
+    busca: ['🔎','Busca Geral','Localizar informações'],
+    unidades: ['AP','Apartamentos','Controle por unidade'],
+    reuniao: ['MR','Modo Reunião','Cobrança e prioridades'],
+    config: ['⚙','Configurações','Obra, listas e backup'],
+  };
+  const h = headers[page] || headers.dashboard;
+  qs('logoMark').textContent = h[0]; qs('headerTitle').textContent = h[1]; qs('headerSub').textContent = h[2];
+  if(page==='ri') riRender();
+  if(page==='arquivos') renderArquivos();
+  if(page==='config') { fillConfigFields(); fillSyncSettings(); }
+  if(page==='busca') renderGlobalSearch();
+  if(page==='unidades') renderUnidades();
+  if(page==='reuniao') renderMeetingMode();
+  updateDashboard();
+};
+
+// Atualiza dashboard com alertas mais úteis
+const _oldUpdateDashboard = updateDashboard;
+updateDashboard = function(){
+  _oldUpdateDashboard();
+  const byResp = groupOpenByResp();
+  // Sem mudança visual obrigatória; usado por modo reunião.
+};
+
+function groupOpenByResp(){
+  const map = {};
+  currentOpenRis().forEach(i=>{ const k=i.resp || 'Sem responsável'; (map[k] ||= []).push(i); });
+  return map;
+}
+
+function riAttachmentsSelected(inp){
+  const files = Array.from(inp.files || []);
+  if(!files.length) return;
+  let pending = files.length;
+  files.forEach(file=>{
+    const reader = new FileReader();
+    reader.onload = e => {
+      riCurrentAttachments.push({ id: Date.now()+Math.random(), name:file.name, type:file.type||'arquivo', size:file.size||0, data:e.target.result });
+      pending--; if(pending===0) renderRiAttachList();
+    };
+    reader.readAsDataURL(file);
+  });
+}
+function renderRiAttachList(){
+  const el=qs('ri-attach-list'); if(!el) return;
+  el.innerHTML = riCurrentAttachments.length ? riCurrentAttachments.map(a=>`<span class="attach-chip">📎 ${escapeHtml(a.name)} <button onclick="removeRiAttachment('${a.id}')">×</button></span>`).join('') : '';
+}
+function removeRiAttachment(id){ riCurrentAttachments = riCurrentAttachments.filter(a=>String(a.id)!==String(id)); renderRiAttachList(); }
+function openAttachment(itemId, attId){
+  const item = riItems.find(x=>String(x.id)===String(itemId)); if(!item) return;
+  const a = (item.attachments||[]).find(x=>String(x.id)===String(attId)); if(!a) return;
+  const w = window.open('','_blank');
+  if((a.type||'').startsWith('image/')) w.document.write(`<img src="${a.data}" style="max-width:100%;height:auto">`);
+  else w.document.write(`<a href="${a.data}" download="${escapeHtml(a.name)}">Baixar ${escapeHtml(a.name)}</a>`);
+}
+
+// addEntry com serviço executado
+const _oldAddEntry = addEntry;
+addEntry = function(){
+  const company = qs('selCompany').value;
+  const role = qs('selRole').value;
+  const floor = qs('selFloor').value;
+  const n = parseInt(qs('qty').value);
+  const service = (qs('entryService')?.value || '').trim();
+  if(!company) { showToast('Selecione uma empresa'); return; }
+  if(!n || n < 1) { showToast('Informe a quantidade'); return; }
+  const idx = entries.findIndex(e => e.company===company && e.role===role && e.floor===floor && (e.service||'')===service);
+  if(idx >= 0) { entries[idx].workers += n; showToast(`Atualizado: +${n}`); }
+  else { entries.push({company,role,floor,workers:n,service}); showToast('Lançamento adicionado ✓'); }
+  qs('qty').value = ''; if(qs('entryService')) qs('entryService').value='';
+  saveEntries(); renderEntries(); renderEfetivoHistorico(); updateDashboard();
+};
+
+// Render entries mostrando serviço
+const _oldRenderEntries = renderEntries;
+renderEntries = function(){
+  _oldRenderEntries();
+  populateHistCompanySelect();
+};
+function populateHistCompanySelect(){
+  const sel=qs('hist-company'); if(!sel) return;
+  const cur=sel.value;
+  sel.innerHTML = '<option value="">— selecione uma empreiteira —</option>' + companies.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+  if(cur) sel.value=cur;
+}
+function renderEfetivoHistorico(){
+  const company = qs('hist-company')?.value;
+  const el=qs('efetivo-historico'); if(!el) return;
+  if(!company){ el.innerHTML='<div class="empty-state"><div class="icon">👷</div>Selecione uma empreiteira para ver o histórico.</div>'; return; }
+  const rows=[];
+  for(let i=0;i<45;i++){
+    const d=new Date(); d.setDate(d.getDate()-i);
+    const key=`dob_entries_v2_${d.toISOString().slice(0,10)}`;
+    let arr=[]; try{ arr=JSON.parse(localStorage.getItem(key)||'[]'); }catch(e){}
+    const total=arr.filter(e=>e.company===company).reduce((s,e)=>s+(+e.workers||0),0);
+    if(total>0){
+      const services=unique(arr.filter(e=>e.company===company).map(e=>e.service).filter(Boolean)).slice(0,3).join(' · ');
+      rows.push({date:d.toLocaleDateString('pt-BR'), total, services});
+    }
+  }
+  el.innerHTML = rows.length ? rows.slice(0,14).map(r=>`<div class="history-card"><strong>${r.date}</strong> — ${r.total} trabalhador(es)${r.services?`<div class="search-result-meta">${escapeHtml(r.services)}</div>`:''}</div>`).join('') : '<div class="empty-state">Sem histórico encontrado para esta empreiteira.</div>';
+}
+
+// RI save/edit com prioridade, prazo, comentários e anexos
+riSaveItem = function(){
+  const title = qs('ri-inp-title').value.trim();
+  if(!title){ showToast('Informe o título da ocorrência'); return; }
+  const now = new Date();
+  const old = riEditId ? riItems.find(x=>x.id===riEditId) : null;
+  const comment = (qs('ri-inp-comment')?.value || '').trim();
+  const item = {
+    id: riEditId || Date.now(),
+    title,
+    folder: qs('ri-inp-folder').value,
+    disc: qs('ri-inp-disc').value,
+    status: qs('ri-inp-status').value,
+    priority: qs('ri-inp-priority')?.value || 'normal',
+    deadline: qs('ri-inp-deadline')?.value || '',
+    floor: qs('ri-inp-floor').value,
+    apto: qs('ri-inp-apto').value.trim(),
+    resp: qs('ri-inp-resp').value,
+    desc: qs('ri-inp-desc').value.trim(),
+    photo: riCurrentPhoto,
+    attachments: riCurrentAttachments || [],
+    comments: old?.comments || [],
+    createdAt: old?.createdAt || now.toISOString(),
+    updatedAt: now.toISOString(),
+    history: old?.history || []
+  };
+  if(old){
+    if(old.status !== item.status) item.history.push({date:now.toISOString(), text:`Status alterado de "${riStatusLabel(old.status)}" para "${riStatusLabel(item.status)}"`});
+    if((old.resp||'') !== (item.resp||'')) item.history.push({date:now.toISOString(), text:`Responsável alterado para "${item.resp || 'sem responsável'}"`});
+    if((old.deadline||'') !== (item.deadline||'')) item.history.push({date:now.toISOString(), text:`Prazo alterado para ${item.deadline ? fmtDateBR(item.deadline) : 'sem prazo'}`});
+    if((old.priority||'normal') !== item.priority) item.history.push({date:now.toISOString(), text:`Prioridade alterada para ${priorityLabel(item.priority)}`});
+  } else {
+    item.history.push({date:now.toISOString(), text:'Ocorrência registrada'});
+  }
+  if(comment) item.comments.push({date:now.toISOString(), text:comment});
+  const idx=riItems.findIndex(x=>x.id===item.id);
+  if(idx>=0) riItems[idx]=item; else riItems.push(item);
+  riEditId=null; riSave(); riResetForm(); riRender(); renderArquivos(); renderUnidades(); renderMeetingMode();
+  showToast('Ocorrência salva ✓');
+};
+
+const _oldRiResetForm = riResetForm;
+riResetForm = function(){
+  _oldRiResetForm();
+  if(qs('ri-inp-priority')) qs('ri-inp-priority').value='normal';
+  if(qs('ri-inp-deadline')) qs('ri-inp-deadline').value='';
+  if(qs('ri-inp-comment')) qs('ri-inp-comment').value='';
+  riCurrentAttachments=[]; renderRiAttachList();
+};
+
+const _oldRiEditItem = riEditItem;
+riEditItem = function(id){
+  const item=riItems.find(x=>x.id===id); if(!item) return;
+  _oldRiEditItem(id);
+  if(qs('ri-inp-priority')) qs('ri-inp-priority').value=item.priority||'normal';
+  if(qs('ri-inp-deadline')) qs('ri-inp-deadline').value=item.deadline||'';
+  riCurrentAttachments = [...(item.attachments||[])]; renderRiAttachList();
+};
+
+// RI render completo com filtros avançados e cobrança
+riRender = function(){
+  qs('ri-cnt-total').textContent = riItems.length;
+  qs('ri-cnt-pend').textContent  = riItems.filter(x=>x.status==='pendente').length;
+  qs('ri-cnt-corr').textContent  = riItems.filter(x=>x.status==='correcao').length;
+  qs('ri-cnt-ok').textContent    = riItems.filter(x=>x.status==='corrigido').length;
+
+  const ff=qs('ri-folder-filters'); const folderOpts=['all',...riFolders,'__sem_pasta__'];
+  ff.innerHTML=folderOpts.map(f=>{ const lbl=f==='all'?'Todas':f==='__sem_pasta__'?'Sem pasta':'📁 '+f; return `<span class="ri-chip${riFolderFilter===f?' active':''}" onclick="riSetFolder('${escapeHtml(f)}')">${escapeHtml(lbl)}</span>`; }).join('');
+  const df=qs('ri-disc-filters'); df.innerHTML=['all',...RI_DISC_ALL].map(d=>`<span class="ri-chip${riDiscFilter===d?' active':''}" onclick="riSetDisc('${escapeHtml(d)}')">${d==='all'?'Todas':escapeHtml(d)}</span>`).join('');
+  const sf=qs('ri-status-filters');
+  const statusOpts=[{k:'all',l:'Todos'},{k:'pendente',l:'⚠️ Pendente'},{k:'correcao',l:'🔧 Correção'},{k:'corrigido',l:'✅ Corrigido'}];
+  sf.innerHTML=statusOpts.map(s=>{ const cls=riStatusFilter===s.k ? (s.k==='pendente'?'active-pend':s.k==='correcao'?'active-corr':s.k==='corrigido'?'active-ok':'active') : ''; return `<span class="ri-chip${cls?' '+cls:''}" onclick="riSetStatus('${s.k}')">${s.l}</span>`; }).join('');
+  const rf=qs('ri-resp-filters');
+  if(rf){ const resps=['all','__sem_resp__',...unique(riItems.map(i=>i.resp))]; rf.innerHTML=resps.map(r=>{ const lbl=r==='all'?'Todos':r==='__sem_resp__'?'Sem responsável':r; return `<span class="ri-chip${riRespFilter===r?' active':''}" onclick="riSetResp('${escapeHtml(r)}')">${escapeHtml(lbl)}</span>`; }).join(''); }
+  const pf=qs('ri-priority-filters');
+  if(pf){ const opts=[['all','Todas'],['criticas','Críticas/impedem'],['urgente','Urgentes'],['atrasadas','Atrasadas'],['sem-prazo','Sem prazo']]; pf.innerHTML=opts.map(o=>`<span class="ri-chip${riPriorityFilter===o[0]?' active':''}" onclick="riSetPriorityFilter('${o[0]}')">${o[1]}</span>`).join(''); }
+
+  const q=safeLower(qs('ri-search')?.value).trim();
+  let filtered=[...riItems];
+  if(riFolderFilter==='__sem_pasta__') filtered=filtered.filter(x=>!x.folder); else if(riFolderFilter!=='all') filtered=filtered.filter(x=>x.folder===riFolderFilter);
+  if(riDiscFilter!=='all') filtered=filtered.filter(x=>x.disc===riDiscFilter);
+  if(riStatusFilter!=='all') filtered=filtered.filter(x=>x.status===riStatusFilter);
+  if(riRespFilter==='__sem_resp__') filtered=filtered.filter(x=>!x.resp); else if(riRespFilter!=='all') filtered=filtered.filter(x=>x.resp===riRespFilter);
+  if(riPriorityFilter==='criticas') filtered=filtered.filter(x=>['critica','impede'].includes(x.priority));
+  if(riPriorityFilter==='urgente') filtered=filtered.filter(x=>x.priority==='urgente');
+  if(riPriorityFilter==='atrasadas') filtered=filtered.filter(x=>deadlineState(x)==='atrasada');
+  if(riPriorityFilter==='sem-prazo') filtered=filtered.filter(x=>!x.deadline && x.status!=='corrigido');
+  if(q) filtered=filtered.filter(x=>[x.title,x.desc,x.folder,x.disc,x.floor,x.apto,x.resp,x.priority,x.deadline,...(x.comments||[]).map(c=>c.text),...(x.attachments||[]).map(a=>a.name)].some(v=>safeLower(v).includes(q)));
+
+  const ord={pendente:0,correcao:1,corrigido:2};
+  const pr={critica:0,impede:0,urgente:1,normal:2};
+  filtered.sort((a,b)=>(ord[a.status]??0)-(ord[b.status]??0) || (pr[a.priority]??2)-(pr[b.priority]??2) || (a.deadline||'9999') .localeCompare(b.deadline||'9999') || new Date(b.createdAt)-new Date(a.createdAt));
+  const list=qs('ri-list');
+  if(!filtered.length){ list.innerHTML='<div class="aq-empty"><div style="font-size:28px;margin-bottom:8px">📋</div>Nenhuma ocorrência encontrada.</div>'; return; }
+  const groups={}; filtered.forEach(item=>{ const key=item.folder||'📂 Sem pasta'; (groups[key] ||= []).push(item); });
+  const groupKeys=Object.keys(groups).sort((a,b)=>{ if(a==='📂 Sem pasta')return 1; if(b==='📂 Sem pasta')return -1; return a.localeCompare(b); });
+  let html='';
+  groupKeys.forEach(key=>{
+    const its=groups[key];
+    html += `<div style="display:flex;align-items:center;gap:8px;margin:14px 0 8px"><span style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--red)">📁 ${escapeHtml(key)}</span><span style="font-size:11px;color:var(--text3);font-family:'Barlow',sans-serif">(${its.length})</span><div style="flex:1;height:1px;background:var(--border)"></div></div>`;
+    its.forEach(item=>{
+      const loc=[item.floor,item.apto?'Apto '+item.apto:''].filter(Boolean).join(' · ');
+      const vencida = deadlineState(item)==='atrasada';
+      html += `<div class="ri-card ${riCardCls(item.status)} pri-${escapeHtml(item.priority||'normal')} ${vencida?'vencida':''}">
+        ${item.photo ? `<img class="ri-card-img" src="${item.photo}" onclick="riOpenDetail(${item.id})" alt="foto"/>` : ''}
+        <div class="ri-card-body"><div class="ri-card-top"><div class="ri-card-title">${escapeHtml(item.title)}</div><div class="ri-card-actions">
+          <button class="icon-btn" onclick="riEditItem(${item.id})" title="Editar">✏️</button>
+          <button class="icon-btn" onclick="riChangeStatus(${item.id})" title="Alterar status">🔄</button>
+          <button class="icon-btn" onclick="sendRiChargeWhatsApp(${item.id})" title="Cobrar WhatsApp">💬</button>
+          <button class="icon-btn" onclick="riDeleteItem(${item.id})" title="Excluir">✕</button>
+        </div></div>
+        ${item.desc ? `<div class="ri-card-desc">${escapeHtml(item.desc)}</div>` : ''}
+        <div class="ri-card-meta"><span class="ri-badge ${riStatusBadgeCls(item.status)}">${riStatusIcon(item.status)} ${riStatusLabel(item.status)}</span><span class="ri-badge rb-disc">${escapeHtml(item.disc)}</span>${loc?`<span class="ri-badge rb-loc">📍 ${escapeHtml(loc)}</span>`:''}${item.resp?`<span class="ri-badge rb-resp">👷 ${escapeHtml(item.resp)}</span>`:''}<span class="ri-badge rb-date">${fmtDT(item.createdAt)}</span></div>
+        <div class="small-badges">${priorityBadge(item.priority||'normal')}${deadlineBadge(item)}${(item.attachments||[]).length?`<span class="mini-badge blue">📎 ${(item.attachments||[]).length} anexo(s)</span>`:''}${(item.comments||[]).length?`<span class="mini-badge dark">💬 ${(item.comments||[]).length} comentário(s)</span>`:''}</div>
+        ${item.history && item.history.length>1 ? `<div class="ri-hist"><div class="ri-hist-title">Histórico</div>${item.history.slice(-3).map(h=>`<div class="ri-hist-item">• ${fmtDT(h.date)} — ${escapeHtml(h.text)}</div>`).join('')}</div>` : ''}
+        </div></div>`;
+    });
+  });
+  list.innerHTML=html;
+};
+function riSetResp(r){ riRespFilter=r; riRender(); }
+function riSetPriorityFilter(p){ riPriorityFilter=p; riRender(); }
+
+const _oldRiOpenDetail = riOpenDetail;
+riOpenDetail = function(id){
+  const item=riItems.find(x=>x.id===id); if(!item) return;
+  const loc=[item.floor,item.apto?'Apto '+item.apto:''].filter(Boolean).join(' · ');
+  qs('ri-detail-title').textContent=item.title;
+  qs('ri-detail-body').innerHTML = `
+    ${item.photo?`<img src="${item.photo}" style="width:100%;max-height:260px;object-fit:cover;border-radius:6px;margin-bottom:12px"/>`:''}
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"><span class="ri-badge ${riStatusBadgeCls(item.status)}">${riStatusIcon(item.status)} ${riStatusLabel(item.status)}</span><span class="ri-badge rb-disc">${escapeHtml(item.disc)}</span>${item.folder?`<span class="ri-badge rb-loc">📁 ${escapeHtml(item.folder)}</span>`:''}${loc?`<span class="ri-badge rb-loc">📍 ${escapeHtml(loc)}</span>`:''}${item.resp?`<span class="ri-badge rb-resp">👷 ${escapeHtml(item.resp)}</span>`:''}</div>
+    <div class="small-badges">${priorityBadge(item.priority||'normal')}${deadlineBadge(item)}</div>
+    ${item.desc?`<p style="font-size:13px;color:var(--text2);line-height:1.6;margin:10px 0">${escapeHtml(item.desc)}</p>`:''}
+    <p style="font-size:11px;color:var(--text3)">Registrado: ${fmtDT(item.createdAt)}</p>
+    ${(item.attachments||[]).length?`<div class="comment-box"><div class="ri-hist-title">Anexos</div><div class="attach-list">${item.attachments.map(a=>`<button class="attach-chip" onclick="openAttachment(${item.id},'${a.id}')">📎 ${escapeHtml(a.name)}</button>`).join('')}</div></div>`:''}
+    <div class="comment-box"><div class="ri-hist-title">Comentários</div><div id="ri-comments-list">${renderCommentsHtml(item)}</div><div style="display:flex;gap:6px;margin-top:8px"><input id="ri-new-comment" placeholder="Adicionar comentário..."/><button class="btn btn-red btn-sm" onclick="addRiComment(${item.id})">Salvar</button></div></div>
+    ${item.history&&item.history.length?`<div class="ri-hist" style="margin-top:12px"><div class="ri-hist-title">Histórico completo</div>${item.history.map(h=>`<div class="ri-hist-item">• ${fmtDT(h.date)} — ${escapeHtml(h.text)}</div>`).join('')}</div>`:''}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px"><button class="btn btn-gray" onclick="riChangeStatus(${item.id});riCloseDetail()">🔄 Alterar status</button><button class="btn btn-red" onclick="sendRiChargeWhatsApp(${item.id})">💬 Cobrar</button><button class="btn btn-gray" onclick="riEditItem(${item.id});riCloseDetail()">✏️ Editar</button><button class="btn btn-red" onclick="riCloseDetail()">Fechar</button></div>`;
+  qs('ri-overlay').classList.add('open');
+};
+function renderCommentsHtml(item){
+  const arr=item.comments||[];
+  return arr.length ? arr.map(c=>`<div class="comment-row"><strong>${fmtDT(c.date)}</strong><br>${escapeHtml(c.text)}</div>`).join('') : '<span style="color:var(--text3)">Nenhum comentário ainda.</span>';
+}
+function addRiComment(id){
+  const item=riItems.find(x=>x.id===id); const text=(qs('ri-new-comment')?.value||'').trim(); if(!item||!text) return;
+  item.comments = item.comments || []; item.comments.push({date:new Date().toISOString(), text});
+  item.history = item.history || []; item.history.push({date:new Date().toISOString(), text:'Comentário adicionado'});
+  item.updatedAt = new Date().toISOString(); riSave(); riOpenDetail(id); riRender();
+}
+
+function makeRiChargeText(item){
+  const loc=[item.floor,item.apto?'Apto '+item.apto:''].filter(Boolean).join(' · ');
+  return [`Bom dia. Segue pendência para verificação/correção:`, '', `• ${item.title}`, item.folder?`Pasta: ${item.folder}`:'', `Status: ${riStatusLabel(item.status)}`, `Prioridade: ${priorityLabel(item.priority||'normal')}`, item.deadline?`Prazo: ${fmtDateBR(item.deadline)}`:'Prazo: sem prazo definido', loc?`Local: ${loc}`:'', item.resp?`Responsável: ${item.resp}`:'Responsável: sem responsável', item.desc?`Observação: ${item.desc}`:'', '', 'Favor retornar com previsão/andamento.'].filter(Boolean).join('\n');
+}
+function sendRiChargeWhatsApp(id){
+  const item=riItems.find(x=>x.id===id); if(!item) return;
+  const enc=encodeURIComponent(makeRiChargeText(item));
+  const mobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  if(mobile) window.location.href='https://wa.me/?text='+enc; else window.open('https://web.whatsapp.com/send?text='+enc,'_blank');
+}
+
+function renderGlobalSearch(){
+  const q=safeLower(qs('global-search')?.value).trim(); const el=qs('global-search-results'); if(!el) return;
+  if(!q){ el.innerHTML='<div class="empty-state"><div class="icon">🔎</div>Digite para buscar em RIs, relatórios e efetivo.</div>'; return; }
+  const results=[];
+  riItems.forEach(item=>{
+    const hay=[item.title,item.desc,item.folder,item.disc,item.status,item.floor,item.apto,item.resp,item.priority,item.deadline,...(item.comments||[]).map(c=>c.text),...(item.attachments||[]).map(a=>a.name)].join(' ');
+    if(safeLower(hay).includes(q)) results.push({type:'RI', title:item.title, meta:`${riStatusLabel(item.status)} · ${item.floor||''} ${item.apto?'Apto '+item.apto:''} · ${item.resp||'Sem responsável'}`, action:`riOpenDetail(${item.id})`});
+  });
+  riSavedReports.forEach(r=>{ const hay=[r.title,r.folder,r.status,reportMeta(r)].join(' '); if(safeLower(hay).includes(q)) results.push({type:'Relatório', title:r.title||'Relatório RI', meta:reportMeta(r), action:`riOpenSavedReport('${r.id}')`}); });
+  Object.keys(localStorage).filter(k=>k.startsWith('dob_entries_v2_')).forEach(k=>{
+    let arr=[]; try{arr=JSON.parse(localStorage.getItem(k)||'[]')}catch(e){}
+    arr.forEach(e=>{ const hay=[e.company,e.role,e.floor,e.service,k].join(' '); if(safeLower(hay).includes(q)) results.push({type:'Efetivo', title:`${e.company} — ${e.workers} ${e.role}`, meta:`${k.replace('dob_entries_v2_','')} · ${e.floor}${e.service?' · '+e.service:''}`, action:`setPage('diario')`}); });
+  });
+  el.innerHTML = results.length ? results.slice(0,60).map(r=>`<div class="search-result-card"><div class="search-result-top"><div><div class="search-result-title">${escapeHtml(r.title)}</div><div class="search-result-meta">${escapeHtml(r.type)} · ${escapeHtml(r.meta)}</div></div><button class="btn btn-gray btn-sm" onclick="${r.action}">Abrir</button></div></div>`).join('') : '<div class="empty-state">Nenhum resultado encontrado.</div>';
+}
+
+function populateUnitFloorSelect(){
+  const sel=qs('unit-floor-filter'); if(!sel) return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="all">Todos os pavimentos</option>' + PAVIMENTOS.map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
+  if(cur) sel.value=cur;
+}
+function renderUnidades(){
+  populateUnitFloorSelect();
+  const floor=qs('unit-floor-filter')?.value || 'all'; const st=qs('unit-status-filter')?.value || 'all'; const el=qs('unit-list'); if(!el) return;
+  const map={};
+  riItems.forEach(i=>{ const f=i.floor||'Sem pavimento'; const a=i.apto||'Sem unidade'; const key=f+'||'+a; (map[key] ||= {floor:f, apto:a, items:[]}).items.push(i); });
+  let units=Object.values(map);
+  if(floor!=='all') units=units.filter(u=>u.floor===floor);
+  if(st==='abertas') units=units.filter(u=>u.items.some(isOpenRI));
+  if(st==='corrigido') units=units.filter(u=>u.items.length && u.items.every(x=>x.status==='corrigido'));
+  if(st==='sem-ri') units=[];
+  units.sort((a,b)=>(a.floor+a.apto).localeCompare(b.floor+b.apto));
+  el.innerHTML = units.length ? `<div class="unit-grid">${units.map(u=>{
+    const pend=u.items.filter(x=>x.status==='pendente').length, corr=u.items.filter(x=>x.status==='correcao').length, ok=u.items.filter(x=>x.status==='corrigido').length, crit=u.items.filter(x=>['critica','impede'].includes(x.priority)).length;
+    return `<div class="unit-card"><div class="unit-top"><div><div class="unit-title">${escapeHtml(u.floor)} — ${escapeHtml(u.apto)}</div><div class="unit-meta"><span class="status-dot pend"></span>${pend} pendente(s) · <span class="status-dot corr"></span>${corr} em correção · <span class="status-dot ok"></span>${ok} corrigida(s)${crit?` · <span class="status-dot crit"></span>${crit} crítica(s)`:''}</div></div><button class="btn btn-gray btn-sm" onclick="openUnit('${escapeHtml(u.floor)}','${escapeHtml(u.apto)}')">Abrir</button></div></div>`;
+  }).join('')}</div>` : '<div class="empty-state"><div class="icon">🏢</div>Nenhuma unidade encontrada com RI registrada.</div>';
+}
+function openUnit(floor, apto){
+  riFolderFilter='all'; riDiscFilter='all'; riStatusFilter='all'; riRespFilter='all'; riPriorityFilter='all';
+  setPage('ri');
+  setTimeout(()=>{ if(qs('ri-search')) qs('ri-search').value=[floor,apto].filter(Boolean).join(' '); riRender(); },60);
+}
+
+function renderMeetingMode(){
+  const open=currentOpenRis();
+  const atras=open.filter(x=>deadlineState(x)==='atrasada');
+  const crit=open.filter(x=>['critica','impede'].includes(x.priority));
+  const sem=open.filter(x=>!x.resp);
+  const set=(id,v)=>{ if(qs(id)) qs(id).textContent=v; };
+  set('mtg-pend', open.length); set('mtg-atras', atras.length); set('mtg-crit', crit.length); set('mtg-semresp', sem.length);
+  const map=groupOpenByResp(); const el=qs('meeting-by-resp');
+  if(el){
+    const keys=Object.keys(map).sort((a,b)=>map[b].length-map[a].length);
+    el.innerHTML = keys.length ? keys.map(k=>{ const arr=map[k]; const a=arr.filter(x=>deadlineState(x)==='atrasada').length; const c=arr.filter(x=>['critica','impede'].includes(x.priority)).length; return `<div class="meeting-card"><div class="meeting-top"><div><div class="meeting-title">${escapeHtml(k)}</div><div class="meeting-meta">${arr.length} pendência(s) aberta(s) · ${a} atrasada(s) · ${c} crítica(s)/impede(m)</div></div><button class="btn btn-red btn-sm" onclick="selectMeetingResp('${escapeHtml(k)}')">Cobrar</button></div></div>`; }).join('') : '<div class="empty-state">Nenhuma pendência aberta.</div>';
+  }
+  const sel=qs('meeting-resp-select'); if(sel){ const cur=sel.value; const keys=['Todos',...Object.keys(map).sort()]; sel.innerHTML=keys.map(k=>`<option value="${escapeHtml(k)}">${escapeHtml(k)}</option>`).join(''); if(cur) sel.value=cur; renderMeetingChargePreview(); }
+}
+function selectMeetingResp(resp){ if(qs('meeting-resp-select')) qs('meeting-resp-select').value=resp; renderMeetingChargePreview(); }
+function meetingChargeText(){
+  const resp=qs('meeting-resp-select')?.value || 'Todos';
+  let arr=currentOpenRis(); if(resp && resp!=='Todos') arr=arr.filter(x=>(x.resp||'Sem responsável')===resp);
+  arr.sort((a,b)=>(deadlineState(a)==='atrasada'?-1:1));
+  const lines=[`Bom dia. Seguem pendências em aberto${resp&&resp!=='Todos'?' — '+resp:''}:`, ''];
+  arr.slice(0,25).forEach((i,n)=>{ const loc=[i.floor,i.apto?'Apto '+i.apto:''].filter(Boolean).join(' · '); lines.push(`${n+1}. ${i.title}`); if(loc) lines.push(`   Local: ${loc}`); lines.push(`   Status: ${riStatusLabel(i.status)} · Prioridade: ${priorityLabel(i.priority||'normal')}`); if(i.deadline) lines.push(`   Prazo: ${fmtDateBR(i.deadline)}${deadlineState(i)==='atrasada'?' — ATRASADA':''}`); });
+  lines.push('', 'Favor retornar com previsão/andamento.');
+  return lines.join('\n');
+}
+function renderMeetingChargePreview(){ const el=qs('meeting-charge-preview'); if(el) el.textContent=meetingChargeText(); }
+function sendMeetingChargeWhatsApp(){ const enc=encodeURIComponent(meetingChargeText()); const mobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent); if(mobile) window.location.href='https://wa.me/?text='+enc; else window.open('https://web.whatsapp.com/send?text='+enc,'_blank'); }
+
+// Nome inteligente dos relatórios
+const _oldRiGeneratePDF = riGeneratePDF;
+riGeneratePDF = function(){
+  _oldRiGeneratePDF();
+  if(riCurrentReport){
+    const status=qs('ri-pdf-status')?.value || '';
+    const folder=qs('ri-pdf-folder')?.value || '';
+    const d=new Date().toISOString().slice(0,10).split('-').reverse().join('-');
+    const parts=['RI', folder||'Geral', status?riStatusLabel(status).replace(/\s+/g,'_'):'Todos', d].filter(Boolean);
+    riCurrentReport.title = parts.join('_').replace(/[^A-Za-z0-9À-ÿ_-]+/g,'_');
+  }
+};
+
+// Supabase sync local-first
+function getBackupPayload(){
+  const data={}; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); data[k]=localStorage.getItem(k); }
+  return { exportedAt:new Date().toISOString(), localStorage:data, app:'diario_obra_rocontec' };
+}
+function fillSyncSettings(){
+  let cfg={}; try{cfg=JSON.parse(localStorage.getItem(SYNC_CFG_KEY)||'{}')}catch(e){}
+  if(qs('sync-url')) qs('sync-url').value=cfg.url||'';
+  if(qs('sync-key')) qs('sync-key').value=cfg.key||'';
+  if(qs('sync-email')) qs('sync-email').value=cfg.email||'';
+}
+function saveSyncSettings(){
+  const cfg={url:(qs('sync-url')?.value||'').trim(), key:(qs('sync-key')?.value||'').trim(), email:(qs('sync-email')?.value||'').trim()};
+  localStorage.setItem(SYNC_CFG_KEY, JSON.stringify(cfg)); showToast('Dados do Supabase salvos');
+}
+function setSyncStatus(t){ const el=qs('sync-status'); if(el) el.textContent=t; }
+function getSyncClient(){
+  let cfg={}; try{cfg=JSON.parse(localStorage.getItem(SYNC_CFG_KEY)||'{}')}catch(e){}
+  if(!cfg.url || !cfg.key){ setSyncStatus('Preencha URL e Publishable key.'); return null; }
+  if(!window.supabase){ setSyncStatus('Biblioteca Supabase não carregou.'); return null; }
+  syncClient = syncClient || supabase.createClient(cfg.url, cfg.key);
+  return syncClient;
+}
+async function syncLogin(){
+  saveSyncSettings(); const client=getSyncClient(); if(!client) return;
+  const email=(qs('sync-email')?.value||'').trim(), password=qs('sync-pass')?.value||'';
+  const {error}=await client.auth.signInWithPassword({email,password});
+  if(error){ setSyncStatus('Erro no login: '+error.message); return; }
+  setSyncStatus('Conectado ao Supabase.'); showToast('Supabase conectado ✓');
+}
+async function syncUpload(){
+  const client=getSyncClient(); if(!client) return;
+  const {data:{user}}=await client.auth.getUser(); if(!user){ setSyncStatus('Faça login antes de sincronizar.'); return; }
+  const payload=getBackupPayload();
+  const {error}=await client.from('app_backups').upsert({user_id:user.id, device_id:'iphone_principal', payload, updated_at:new Date().toISOString()},{onConflict:'user_id,device_id'});
+  if(error){ setSyncStatus('Erro ao enviar: '+error.message+' — confira se a tabela app_backups existe.'); return; }
+  setSyncStatus('Backup enviado para Supabase em '+new Date().toLocaleString('pt-BR')); showToast('Backup enviado ✓');
+}
+async function syncDownload(){
+  const client=getSyncClient(); if(!client) return;
+  const {data:{user}}=await client.auth.getUser(); if(!user){ setSyncStatus('Faça login antes de restaurar.'); return; }
+  const {data,error}=await client.from('app_backups').select('payload,updated_at').eq('user_id',user.id).eq('device_id','iphone_principal').single();
+  if(error){ setSyncStatus('Erro ao baixar: '+error.message); return; }
+  if(!confirm('Restaurar backup da nuvem? Isso substituirá os dados locais deste navegador.')) return;
+  Object.entries(data.payload.localStorage||{}).forEach(([k,v])=>localStorage.setItem(k,String(v)));
+  setSyncStatus('Backup restaurado. Recarregando...'); setTimeout(()=>location.reload(),800);
+}
+
+// Inicializações extras
+try { populateHistCompanySelect(); renderEfetivoHistorico(); fillSyncSettings(); } catch(e) {}
+
+
+
+/* ════════════════════════════════════════
+   DASHBOARD MELHORADO — INÍCIO
+════════════════════════════════════════ */
+function dashboardDeadlineState(item){
+  if(!item || item.status === 'corrigido') return 'ok';
+  if(!item.deadline) return 'sem-prazo';
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(item.deadline + 'T12:00:00'); d.setHours(0,0,0,0);
+  const diff = Math.round((d - today) / 86400000);
+  if(diff < 0) return 'atrasada';
+  if(diff === 0) return 'vence-hoje';
+  if(diff <= 3) return 'urgente';
+  return 'ok';
+}
+function dashboardPriorityLabel(p){
+  return p === 'critica' ? 'Crítica' : p === 'impede' ? 'Impede serviço' : p === 'alta' ? 'Alta' : p === 'media' ? 'Média' : 'Normal';
+}
+function dashboardStatusPill(status){
+  if(status === 'corrigido') return '<span class="dash-pill green">Corrigida</span>';
+  if(status === 'correcao') return '<span class="dash-pill blue">Correção</span>';
+  return '<span class="dash-pill orange">Pendente</span>';
+}
+function dashboardFmtDateBR(d){
+  if(!d) return '';
+  const parts = String(d).split('-');
+  return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : d;
+}
+function setDashText(id, value){ const el=document.getElementById(id); if(el) el.textContent=value; }
+function setDashHtml(id, value){ const el=document.getElementById(id); if(el) el.innerHTML=value; }
+
+updateDashboard = function(){
+  const today = new Date();
+  const todayKey = today.toISOString().slice(0,10);
+  let todayEntries = [];
+  try { todayEntries = JSON.parse(localStorage.getItem(`dob_entries_v2_${todayKey}`) || '[]'); } catch(e) {}
+  const ris = Array.isArray(window.riItems) ? window.riItems : (typeof riItems !== 'undefined' ? riItems : []);
+  const reports = Array.isArray(window.riSavedReports) ? window.riSavedReports : (typeof riSavedReports !== 'undefined' ? riSavedReports : []);
+  const folders = Array.isArray(window.riFolders) ? window.riFolders : (typeof riFolders !== 'undefined' ? riFolders : []);
+
+  const totalWorkers = todayEntries.reduce((s,e)=>s+(+e.workers||0),0);
+  const pend = ris.filter(x=>x.status==='pendente');
+  const corr = ris.filter(x=>x.status==='correcao');
+  const ok = ris.filter(x=>x.status==='corrigido');
+  const open = ris.filter(x=>x.status!=='corrigido');
+  const critical = open.filter(x=>['critica','impede'].includes(x.priority));
+  const late = open.filter(x=>dashboardDeadlineState(x)==='atrasada');
+  const noResp = open.filter(x=>!x.resp);
+  const progress = ris.length ? Math.round((ok.length / ris.length) * 100) : 0;
+
+  setDashText('db-hero-title', (appSettings?.obra || 'Resumo da obra'));
+  setDashText('db-hero-sub', `${appSettings?.empresa || 'ROCONTEC'} · visão rápida para rotina de campo`);
+  setDashText('db-hero-weekday', DAYS[today.getDay()] || 'Hoje');
+  setDashText('db-hero-date', today.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'}));
+  setDashText('db-total-workers', totalWorkers);
+  setDashText('db-open-ri', open.length);
+  setDashText('db-critical-ri', critical.length);
+  setDashText('db-ri-pend', pend.length);
+  setDashText('db-ri-corr', corr.length);
+  setDashText('db-ri-late', late.length);
+  setDashText('db-ri-noresp', noResp.length);
+  setDashText('db-ri-progress-text', `${ok.length} de ${ris.length} corrigidas · ${progress}% concluído`);
+  const bar=document.getElementById('db-ri-progress-bar'); if(bar) bar.style.width=progress+'%';
+
+  const attention = [...critical, ...late.filter(x=>!critical.includes(x)), ...noResp.filter(x=>!critical.includes(x) && !late.includes(x))]
+    .sort((a,b)=> new Date(a.deadline || '2999-12-31') - new Date(b.deadline || '2999-12-31'))
+    .slice(0,5);
+  setDashHtml('db-alerts-list', attention.length ? attention.map(item=>{
+    const state = dashboardDeadlineState(item);
+    const badge = state === 'atrasada' ? '<span class="dash-pill red">Atrasada</span>' : state === 'vence-hoje' ? '<span class="dash-pill red">Vence hoje</span>' : ['critica','impede'].includes(item.priority) ? '<span class="dash-pill red">'+dashboardPriorityLabel(item.priority)+'</span>' : '<span class="dash-pill orange">Atenção</span>';
+    const loc=[item.floor,item.apto?'Apto '+item.apto:''].filter(Boolean).join(' · ');
+    return `<div class="dash-list-item"><div><div class="dash-list-title">${escapeHtml(item.title||'Ocorrência')}</div><div class="dash-list-meta">${escapeHtml(loc || item.folder || 'Sem local')} · ${escapeHtml(item.resp || 'Sem responsável')}${item.deadline?' · prazo '+dashboardFmtDateBR(item.deadline):''}</div></div>${badge}</div>`;
+  }).join('') : 'Nenhuma pendência crítica no momento.');
+
+  const last = [...ris].sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0)).slice(0,4);
+  setDashHtml('db-last-ri', last.length ? last.map(x=>{
+    const loc=[x.floor,x.apto?'Apto '+x.apto:''].filter(Boolean).join(' · ');
+    return `<div class="dash-list-item"><div><div class="dash-list-title">${escapeHtml(x.title||'Ocorrência')}</div><div class="dash-list-meta">${escapeHtml(loc || x.folder || 'Sem local')} · ${escapeHtml(x.resp || 'Sem responsável')}</div></div>${dashboardStatusPill(x.status)}</div>`;
+  }).join('') : 'Nenhuma ocorrência registrada.');
+
+  const byCompany = {};
+  todayEntries.forEach(e=>{ byCompany[e.company || 'Sem empresa'] = (byCompany[e.company || 'Sem empresa']||0) + (+e.workers||0); });
+  const compRows = Object.entries(byCompany).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  setDashHtml('db-worker-by-company', compRows.length ? compRows.map(([c,n])=>`<div class="dash-list-item"><div><div class="dash-list-title">${escapeHtml(c)}</div><div class="dash-list-meta">Efetivo lançado hoje</div></div><span class="dash-pill blue">${n}</span></div>`).join('') : 'Nenhum efetivo lançado hoje.');
+
+  setDashHtml('db-files-summary', `<div class="dash-list-item"><div><div class="dash-list-title">${reports.length} relatório(s) salvo(s)</div><div class="dash-list-meta">${folders.length} pasta(s) cadastrada(s)</div></div><span class="dash-pill green">Arquivos</span></div>`);
+};
 updateDashboard();
 </script>
 </body>
